@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ace Lab Max - 内容灵感引擎</title>
+    <!-- 引入 Tailwind CSS 进行样式管理 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Lucide Icons 图标库 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 自定义一些动画和滚动条样式 */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        
+        /* 隐藏滚动条但保留滚动功能 */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* 保持UI高级感 */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #F8F9FA; color: #1e293b; }
+        
+        /* 加载动画 */
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #0f172a; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- 顶部 Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-20">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <div class="bg-slate-900 text-white p-2 rounded-xl shadow-sm">
+                    <i data-lucide="camera" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-900">Ace Lab <span class="text-rose-600">Max</span></h1>
+                    <p class="text-[10px] sm:text-[11px] text-slate-500 font-bold tracking-widest uppercase mt-0.5">Safe Content Engine</p>
+                </div>
+            </div>
+            <div class="flex items-center">
+                <span class="text-xs sm:text-sm font-medium text-slate-500 flex items-center gap-1.5 bg-slate-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full">
+                    Laura's Workspace <i data-lucide="heart" class="w-3 h-3 sm:w-4 sm:h-4 text-rose-500 fill-rose-500"></i>
+                </span>
+            </div>
+        </div>
+        
+        <!-- 步骤指示器 -->
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-2 sm:py-3 bg-slate-50/50 border-t border-slate-100 flex items-center gap-1 sm:gap-2 overflow-x-auto hide-scrollbar" id="step-indicator">
+            <!-- JavaScript 动态渲染 -->
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8">
+        
+        <!-- 左侧：图片资产区 -->
+        <div class="md:col-span-4 space-y-6">
+            <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm sticky top-24 sm:top-40">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="image" class="w-4 h-4 sm:w-5 sm:h-5 text-slate-400"></i>
+                        解析客片 <span class="text-[10px] sm:text-xs font-normal text-slate-400" id="image-count">(0/3)</span>
+                    </h2>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2 sm:gap-3 mb-4" id="image-grid">
+                    <!-- 上传按钮 (默认占满) -->
+                    <div id="upload-btn" class="col-span-2 aspect-square cursor-pointer flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-slate-400 transition-colors">
+                        <i data-lucide="upload" class="w-6 h-6 sm:w-8 sm:h-8 text-slate-400 mb-2"></i>
+                        <span class="text-xs sm:text-sm text-slate-500 font-medium">添加照片</span>
+                    </div>
+                </div>
+                
+                <input type="file" id="file-input" accept="image/*" multiple class="hidden">
+
+                <!-- 操作按钮区 -->
+                <div id="left-actions-container" class="mt-4">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：工作流操作区 -->
+        <div class="md:col-span-8" id="workflow-container">
+            <!-- 默认占位 -->
+            <div class="h-full min-h-[300px] sm:min-h-[400px] flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-2xl bg-white/50 p-6 text-center">
+                <i data-lucide="camera" class="w-10 h-10 sm:w-12 sm:h-12 mb-4 opacity-20"></i>
+                <p class="font-medium text-slate-500 text-sm sm:text-base">第一步：请在左侧上传 1-3 张 Ace Lab 的客片</p>
+                <p class="text-xs sm:text-sm mt-2">引擎将基于画面内容开启无限灵感风暴</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- 核心配置与状态 ---
+        const API_KEY = "AIzaSyCrJLTBS3tY0wdlPmYS6F9mP2P6Q8YwH80"; // 实际使用时需要配置，或者由运行环境注入
+        const SENSITIVE_WORDS = [
+            '顶级', '天花板', '唯一', '首家', '独家', '绝版', '全网首发', 
+            '史无前例', '绝无仅有', '第一', '最强', '最高级', '最好', '最美', 
+            '最便宜', '最划算', '绝对', '百分之百', '100%', '极品', '巅峰',
+            '加微信', '加vx', '威信', '薇信', '私聊我', '加V', '支付宝', '转账', '汇款'
+        ];
+
+        let state = {
+            images: [], // { data: base64, mimeType: string }
+            currentStep: 1,
+            brainstormHistory: [], // {title, desc}[]
+            currentIdeas: [], // {title, desc}[]
+            activeIdeaObj: null,
+            titles: [],
+            selectedTitle: '',
+            finalCopy: '',
+            detectedWords: [],
+            isLoading: false
+        };
+
+        // --- DOM 元素引用 ---
+        const els = {
+            fileInput: document.getElementById('file-input'),
+            uploadBtn: document.getElementById('upload-btn'),
+            imageGrid: document.getElementById('image-grid'),
+            imageCount: document.getElementById('image-count'),
+            leftActions: document.getElementById('left-actions-container'),
+            workflowContainer: document.getElementById('workflow-container'),
+            stepIndicator: document.getElementById('step-indicator')
+        };
+
+        // --- 初始化图标 ---
+        lucide.createIcons();
+
+        // --- 工具函数 ---
+        
+        // 渲染步骤指示器
+        const renderStepIndicator = () => {
+            const steps = [
+                { num: 1, icon: 'lightbulb', label: '灵感脑暴' },
+                { num: 2, icon: 'type', label: '敲定标题' },
+                { num: 3, icon: 'file-text', label: '极简文案' }
+            ];
+
+            els.stepIndicator.innerHTML = steps.map((s, idx) => {
+                const isCompleted = state.currentStep > s.num;
+                const isActive = state.currentStep === s.num;
+                
+                let classes = "flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold transition-all whitespace-nowrap ";
+                let iconHtml = '';
+
+                if (isActive) {
+                    classes += "bg-slate-900 text-white shadow-sm";
+                    iconHtml = `<i data-lucide="${s.icon}" class="w-3 h-3 sm:w-3.5 sm:h-3.5"></i>`;
+                } else if (isCompleted) {
+                    classes += "bg-green-50 text-green-600 border border-green-200";
+                    iconHtml = `<i data-lucide="check-circle-2" class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-green-500"></i>`;
+                } else {
+                    classes += "bg-slate-100 text-slate-400";
+                    iconHtml = `<i data-lucide="${s.icon}" class="w-3 h-3 sm:w-3.5 sm:h-3.5"></i>`;
+                }
+
+                let html = `<div class="${classes}">${iconHtml}<span>${s.label}</span></div>`;
+                if (idx < steps.length - 1) {
+                    html += `<i data-lucide="chevron-right" class="w-3 h-3 sm:w-4 sm:h-4 text-slate-300 flex-shrink-0"></i>`;
+                }
+                return html;
+            }).join('');
+            lucide.createIcons();
+        };
+
+        // 敏感词扫描
+        const scanForSensitiveWords = (text) => {
+            if(!text) return [];
+            return [...new Set(SENSITIVE_WORDS.filter(word => text.includes(word)))];
+        };
+
+        // 高亮敏感词
+        const renderHighlightedCopy = (text, foundWords) => {
+            if (foundWords.length === 0) return text;
+            let highlightedText = text;
+            foundWords.forEach(word => {
+                const regex = new RegExp(word, 'g');
+                highlightedText = highlightedText.replace(regex, `<span class="bg-red-100 text-red-600 font-bold px-1 rounded border-b-2 border-red-500">${word}</span>`);
+            });
+            return highlightedText;
+        };
+
+        // API 调用封装
+        const callGeminiAPI = async (prompt, systemInstruction = "", expectJson = false) => {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+            
+            const parts = [{ text: prompt }];
+            state.images.forEach(img => {
+                parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
+            });
+
+            const payload = { contents: [{ role: "user", parts: parts }] };
+            if (systemInstruction) payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+            if (expectJson) payload.generationConfig = { responseMimeType: "application/json" };
+
+            let retries = 0;
+            while (retries < 5) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const result = await response.json();
+                    let text = result.candidates[0].content.parts[0].text;
+                    
+                    // 尝试清理可能的 Markdown 代码块包裹
+                    if (expectJson) {
+                        text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                        return JSON.parse(text);
+                    }
+                    return text;
+                } catch (error) {
+                    retries++;
+                    console.error("API Error:", error);
+                    if (retries >= 5) throw new Error('网络请求失败，请检查API Key或网络环境');
+                    await new Promise(resolve => setTimeout(resolve, [1000, 2000, 4000, 8000, 16000][retries - 1]));
+                }
+            }
+        };
+
+        // --- 核心业务逻辑 ---
+
+        // 1. 处理图片上传
+        const handleImageUpload = async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            
+            const availableSlots = 3 - state.images.length;
+            const filesToProcess = files.slice(0, availableSlots);
+            
+            for(let file of filesToProcess) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_SIZE = 800;
+                        let width = img.width, height = img.height;
+                        if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } 
+                        else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                        canvas.width = width; canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        state.images.push({
+                            data: canvas.toDataURL(file.type).split(',')[1],
+                            mimeType: file.type
+                        });
+                        updateLeftPanel();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        const removeImage = (index) => {
+            state.images.splice(index, 1);
+            if (state.images.length === 0) resetAllState();
+            updateLeftPanel();
+        };
+
+        const resetAllState = () => {
+            state = { images: state.images, currentStep: 1, brainstormHistory: [], currentIdeas: [], activeIdeaObj: null, titles: [], selectedTitle: '', finalCopy: '', detectedWords: [], isLoading: false };
+            renderStepIndicator();
+            renderWorkflow();
+            updateLeftPanel();
+        };
+
+        // 更新左侧面板 UI
+        const updateLeftPanel = () => {
+            els.imageCount.textContent = `(${state.images.length}/3)`;
+            
+            // 渲染图片网格
+            let gridHtml = '';
+            state.images.forEach((img, idx) => {
+                const colSpanClass = (idx === 0 && state.images.length === 1) ? 'col-span-2' : '';
+                gridHtml += `
+                    <div class="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-50 aspect-square ${colSpanClass}">
+                        <img src="data:${img.mimeType};base64,${img.data}" class="w-full h-full object-cover">
+                        <button onclick="removeImage(${idx})" class="absolute top-1 right-1 sm:top-2 sm:right-2 bg-black/60 text-white p-1 sm:p-1.5 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:bg-rose-500 z-10">
+                            <i data-lucide="x" class="w-3 h-3 sm:w-3.5 sm:h-3.5"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            
+            if (state.images.length < 3) {
+                const colSpanClass = state.images.length === 0 ? 'col-span-2' : '';
+                gridHtml += `
+                    <div id="upload-btn" onclick="document.getElementById('file-input').click()" class="aspect-square cursor-pointer flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-slate-400 transition-colors ${colSpanClass}">
+                        <i data-lucide="upload" class="w-6 h-6 sm:w-8 sm:h-8 text-slate-400 mb-2"></i>
+                        <span class="text-xs sm:text-sm text-slate-500 font-medium">添加照片</span>
+                    </div>
+                `;
+            }
+            els.imageGrid.innerHTML = gridHtml;
+            
+            // 渲染底部按钮
+            let actionsHtml = '';
+            if (state.images.length > 0 && state.currentStep === 1 && state.currentIdeas.length === 0 && !state.isLoading) {
+                actionsHtml = `
+                    <button onclick="fetchIdeas([])" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-sm sm:text-base font-medium py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95">
+                        <i data-lucide="sparkles" class="w-4 h-4 sm:w-5 sm:h-5"></i> 提取灵感切入点
+                    </button>
+                `;
+            } else if (state.images.length > 0 && (state.currentStep > 1 || state.currentIdeas.length > 0)) {
+                actionsHtml = `
+                    <button onclick="if(confirm('重新开始将清空当前进度，确定吗？')) resetAllState()" class="w-full bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium py-2 sm:py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i> 重新分析照片
+                    </button>
+                `;
+            }
+            els.leftActions.innerHTML = actionsHtml;
+            
+            lucide.createIcons();
+            
+            if(state.images.length > 0 && state.currentStep === 1 && state.currentIdeas.length === 0 && !state.isLoading) {
+                renderWorkflow(); // 显示初始提示
+            } else if (state.images.length === 0) {
+                 renderWorkflow(); // 恢复上传提示
+            }
+        };
+
+        // 2. 提取灵感脑暴
+        window.fetchIdeas = async (targetHistory) => {
+            if(!API_KEY) { alert("请在代码中配置您的 API_KEY"); return; }
+            state.isLoading = true; renderWorkflow();
+            
+            try {
+                let prompt = "";
+                const parentIdea = targetHistory.length > 0 ? targetHistory[targetHistory.length - 1] : null;
+
+                if (!parentIdea) {
+                    prompt = `分析我提供的婚纱照特点。作为Ace Lab婚纱摄影工作室的主理人，请结合小红书受众的喜好（如备婚干货、情感共鸣、审美拆解等），给出5-6个截然不同的发文头脑风暴切入点。
+                    请返回JSON数组格式：[{"title": "切入点标题", "desc": "简短描述为什么这个角度吸引人以及具体写什么"}]`;
+                } else {
+                    const pathString = targetHistory.map(h => h.title).join(" -> ");
+                    prompt = `基于我提供的婚纱照，发文方向定为：【${pathString}】。具体思路是：${parentIdea.desc}。
+                    请根据这个方向继续深入，为我延伸出3-5个更具体、可以直接作为文章核心立意的细分发散点。
+                    请返回JSON数组格式：[{"title": "细分角度标题", "desc": "简短描述具体展开描写画面的什么细节或情绪"}]`;
+                }
+
+                const results = await callGeminiAPI(prompt, "你是一个高级婚纱摄影工作室的小红书内容策划专家。", true);
+                state.brainstormHistory = targetHistory;
+                state.currentIdeas = results;
+                state.currentStep = 1;
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                state.isLoading = false;
+                renderStepIndicator();
+                renderWorkflow();
+                updateLeftPanel();
+            }
+        };
+
+        window.handleSelectIdea = (idea) => {
+            state.activeIdeaObj = idea;
+            generateTitles(idea);
+        };
+
+        // 3. 生成标题
+        window.generateTitles = async (ideaObj) => {
+            state.isLoading = true; state.currentStep = 2; renderStepIndicator(); renderWorkflow();
+            try {
+                const fullIdeaStr = state.brainstormHistory.map(h => h.title).concat(ideaObj.title).join(" -> ");
+                const prompt = `结合我提供的照片，我要写一篇小红书。核心切入点是：【${fullIdeaStr}】。具体思路是：${ideaObj.desc}。
+                请为我生成6-8个极具"网感"的小红书爆款标题。
+                【严格合规与排版要求】：
+                1. 字数必须严格控制在20个字以内！用最少的字数制造最大的吸引力。
+                2. 严格遵守中国《广告法》和小红书规范，【绝对禁止】使用极限词（如最、第一、顶级、天花板、绝版、唯一等）。
+                3. 可以包含1个符合语境的emoji。
+                请返回一个JSON数组，格式如下：["标题1", "标题2", ...]`;
+
+                state.titles = await callGeminiAPI(prompt, "你是爆款标题制造机，深谙小红书规则，极其擅长写合规的短标题。", true);
+            } catch (error) {
+                alert(error.message); state.currentStep = 1;
+            } finally {
+                state.isLoading = false; renderStepIndicator(); renderWorkflow();
+            }
+        };
+
+        window.handleSelectTitle = (title) => {
+            state.selectedTitle = title;
+            generateCopy(title);
+        };
+
+        // 4. 生成文案
+        window.generateCopy = async (title) => {
+            state.isLoading = true; state.currentStep = 3; state.finalCopy = ''; state.detectedWords = []; renderStepIndicator(); renderWorkflow();
+            try {
+                const fullIdeaStr = state.brainstormHistory.map(h => h.title).concat(state.activeIdeaObj.title).join(" -> ");
+                const prompt = `结合照片，为"Ace Lab"婚纱摄影工作室撰写小红书正文。切入点：【${fullIdeaStr}】。标题：【${title}】。
+                【严格要求 - 必读】：
+                1. 极度精简：字数越少越好！语气像主理人随笔，点到即止留有余味。
+                2. 【红线合规】：严禁使用极限广告词（如最、第一、顶级等）；严禁违规导流词（如“加微信”、“私信我”，请用“后台留言”、“主页”代替）。
+                3. 呼吸感排版：每句话独立成行，多换行留白。
+                4. 标签：文末加5-8个精准Hashtag，包含 #AceLab定制 和 #AceLab婚纱摄影。直接输出文案内容即可。`;
+
+                const copyText = await callGeminiAPI(prompt, "你是顶级小红书新媒体总监，精通中国广告法与小红书限流规则机制。");
+                state.finalCopy = copyText;
+                state.detectedWords = scanForSensitiveWords(copyText);
+            } catch (error) {
+                alert(error.message); state.currentStep = 2;
+            } finally {
+                state.isLoading = false; renderStepIndicator(); renderWorkflow();
+            }
+        };
+
+        // 5. 优化文案
+        window.handleRefineCopy = async (overrideFeedback = null) => {
+            const feedbackInput = document.getElementById('feedback-input');
+            const feedbackText = overrideFeedback || (feedbackInput ? feedbackInput.value : '');
+            if (!feedbackText.trim()) return;
+            
+            state.isLoading = true; renderWorkflow();
+            try {
+                const prompt = `你之前生成了以下文案：\n${state.finalCopy}\n
+                主理人提出了以下修改意见：【${feedbackText}】\n
+                请根据意见优化文案。【合规红线】：绝对禁止出现《广告法》违禁词（最、第一、顶级等）和敏感引流词（加微信等）。
+                直接输出优化后的文案内容，保持精简和留白排版。`;
+
+                const newCopyText = await callGeminiAPI(prompt, "你是顶级小红书合规审查员及新媒体总监。");
+                state.finalCopy = newCopyText;
+                state.detectedWords = scanForSensitiveWords(newCopyText);
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                state.isLoading = false; renderWorkflow();
+            }
+        };
+
+        // 辅助功能
+        window.copyTextToClipboard = () => {
+            const el = document.createElement('textarea');
+            el.value = state.finalCopy;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            
+            const btn = document.getElementById('copy-btn');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-green-400"></i> 已复制`;
+            lucide.createIcons();
+            setTimeout(() => { btn.innerHTML = originalHtml; lucide.createIcons(); }, 2000);
+        };
+
+        // --- 主渲染逻辑 ---
+        const renderWorkflow = () => {
+            let html = '';
+            
+            if (state.images.length === 0) {
+                html = `
+                    <div class="h-full min-h-[300px] sm:min-h-[400px] flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-2xl bg-white/50 p-6 text-center animate-fade-in">
+                        <i data-lucide="camera" class="w-10 h-10 sm:w-12 sm:h-12 mb-4 opacity-20"></i>
+                        <p class="font-medium text-slate-500 text-sm sm:text-base">第一步：请在左侧上传 1-3 张 Ace Lab 的客片</p>
+                        <p class="text-xs sm:text-sm mt-2">引擎将基于画面内容开启无限灵感风暴</p>
+                    </div>`;
+            } else if (state.isLoading && state.currentIdeas.length === 0 && state.currentStep === 1) {
+                 html = `
+                    <div class="h-[300px] flex flex-col items-center justify-center text-slate-500 bg-white rounded-2xl border border-slate-200 shadow-sm animate-fade-in">
+                        <div class="loader mb-4 border-slate-900"></div>
+                        <p class="font-medium text-slate-700 text-sm sm:text-base">正在深度解析画面特征...</p>
+                        <p class="text-xs sm:text-sm mt-1">发散创意思维中</p>
+                    </div>`;
+            } else if (state.currentStep === 1 && state.currentIdeas.length > 0) {
+                // 渲染步骤 1 (脑暴结果)
+                let breadcrumbsHtml = '';
+                if(state.brainstormHistory.length > 0) {
+                    breadcrumbsHtml = `<div class="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-sm text-slate-600 mb-4 sm:mb-6 bg-white px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 shadow-sm">
+                        <span class="cursor-pointer hover:text-slate-900 hover:underline flex items-center gap-1" onclick="fetchIdeas([])"><i data-lucide="lightbulb" class="w-3 h-3 sm:w-3.5 sm:h-3.5"></i> 核心灵感</span>`;
+                    state.brainstormHistory.forEach((h, idx) => {
+                        breadcrumbsHtml += `<i data-lucide="chevron-right" class="w-3 h-3 text-slate-300"></i>
+                        <span class="cursor-pointer hover:text-slate-900 hover:underline truncate max-w-[80px] sm:max-w-none" onclick="fetchIdeas(state.brainstormHistory.slice(0, ${idx+1}))">${h.title}</span>`;
+                    });
+                    breadcrumbsHtml += `</div>`;
+                }
+
+                html = `<div class="animate-fade-in space-y-4">
+                    ${breadcrumbsHtml}
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <h3 class="font-bold text-base sm:text-lg text-slate-800 flex items-center gap-2">
+                            ${state.brainstormHistory.length === 0 ? '✨ 为您提取了以下方向：' : '🔍 基于该方向的深度挖掘：'}
+                        </h3>
+                        <button onclick="fetchIdeas(state.brainstormHistory)" class="self-start sm:self-auto flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-900 bg-white border border-slate-200 px-2 sm:px-3 py-1.5 rounded-lg shadow-sm">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> 换一批思路
+                        </button>
+                    </div>
+                    <div class="grid gap-3 sm:gap-4">
+                        ${state.currentIdeas.map((idea, idx) => `
+                            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all">
+                                <h4 class="font-bold text-slate-900 text-sm sm:text-base mb-2">${idea.title}</h4>
+                                <p class="text-slate-600 text-xs sm:text-sm leading-relaxed mb-4">${idea.desc}</p>
+                                <div class="flex flex-col sm:flex-row items-center gap-2 pt-3 border-t border-slate-100">
+                                    <button onclick='fetchIdeas([...state.brainstormHistory, ${JSON.stringify(idea).replace(/'/g, "&apos;")}])' class="w-full sm:w-auto flex-1 bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-colors flex justify-center items-center gap-1.5">
+                                        <i data-lucide="corner-down-right" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i> 进一步发散细节
+                                    </button>
+                                    <button onclick='handleSelectIdea(${JSON.stringify(idea).replace(/'/g, "&apos;")})' class="w-full sm:w-auto flex-1 bg-slate-900 text-white hover:bg-slate-800 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-colors flex justify-center items-center gap-1.5 shadow-sm">
+                                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i> 就选这个方向
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            } else if (state.currentStep === 2) {
+                // 渲染步骤 2 (标题选择)
+                const coreIdeaStr = state.brainstormHistory.map(h => h.title).concat(state.activeIdeaObj?.title).join(" -> ");
+                
+                html = `<div class="animate-fade-in">
+                    <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6 flex gap-2 sm:gap-3">
+                        <div class="mt-0.5"><i data-lucide="check-circle-2" class="text-indigo-500 w-4 h-4 sm:w-5 sm:h-5"></i></div>
+                        <div>
+                            <p class="text-[10px] sm:text-xs text-indigo-400 font-bold tracking-wider mb-0.5 sm:mb-1">已选定创作核心</p>
+                            <p class="text-indigo-900 font-medium text-xs sm:text-sm leading-relaxed">${coreIdeaStr}</p>
+                        </div>
+                    </div>`;
+
+                if (state.isLoading) {
+                    html += `<div class="h-[250px] sm:h-64 flex flex-col items-center justify-center text-slate-500 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="loader mb-4 border-slate-900"></div>
+                        <p class="font-medium text-slate-700 text-sm">正在提炼合规的极简爆款标题...</p>
+                        <div class="flex items-center gap-1.5 mt-2 text-[10px] sm:text-xs text-green-600 bg-green-50 px-2 sm:px-3 py-1 rounded-full">
+                            <i data-lucide="shield-check" class="w-3 h-3 sm:w-3.5 sm:h-3.5"></i> 广告法过滤中
+                        </div>
+                    </div>`;
+                } else {
+                    html += `<div class="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-bold text-base sm:text-lg text-slate-800">从中挑选一个短标题</h3>
+                            <button onclick="generateTitles(state.activeIdeaObj)" class="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm font-medium text-slate-500 bg-slate-50 border border-slate-200 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg">
+                                <i data-lucide="refresh-cw" class="w-3 h-3 sm:w-3.5 sm:h-3.5"></i> 换一批
+                            </button>
+                        </div>
+                        <p class="text-[10px] sm:text-sm text-slate-500 mb-4 sm:mb-6 flex flex-wrap items-center gap-2 sm:gap-4">
+                            <span class="flex items-center gap-1"><i data-lucide="sparkles" class="w-3 h-3 text-amber-500"></i> 20字以内</span>
+                            <span class="flex items-center gap-1 text-green-600"><i data-lucide="shield-check" class="w-3 h-3"></i> 已屏蔽违规词</span>
+                        </p>
+                        <div class="space-y-2 sm:space-y-3">
+                            ${state.titles.map((title, idx) => {
+                                const sensitives = scanForSensitiveWords(title);
+                                const isRisky = sensitives.length > 0;
+                                const classes = isRisky ? 'border-red-200 bg-red-50 cursor-not-allowed' : 'border-slate-100 hover:border-slate-900 hover:bg-slate-50 cursor-pointer';
+                                const textClasses = isRisky ? 'text-red-700 line-through opacity-60' : 'text-slate-700 group-hover:text-slate-900';
+                                const numClasses = isRisky ? 'text-red-400' : 'text-slate-300 group-hover:text-slate-900';
+                                
+                                return `<div onclick="${!isRisky ? `handleSelectTitle('${title.replace(/'/g, "\\'")}')` : ''}" class="group p-3 sm:p-4 rounded-xl border-2 transition-all flex items-start gap-2 sm:gap-3 ${classes}">
+                                    <span class="font-bold text-xs sm:text-sm mt-0.5 ${numClasses}">${(idx+1).toString().padStart(2, '0')}</span>
+                                    <div class="flex-1">
+                                        <span class="font-medium text-xs sm:text-sm leading-relaxed ${textClasses}">${title}</span>
+                                        ${isRisky ? `<p class="text-[10px] sm:text-xs text-red-500 mt-1 flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> 包含敏感词：${sensitives.join(', ')} (已阻断选择)</p>` : ''}
+                                    </div>
+                                    ${!isRisky ? `<i data-lucide="chevron-right" class="w-4 h-4 sm:w-[18px] sm:h-[18px] text-slate-300 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1"></i>` : ''}
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div></div>`;
+                }
+            } else if (state.currentStep === 3) {
+                 // 渲染步骤 3 (生成文案)
+                 html = `<div class="animate-fade-in h-full flex flex-col">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
+                        <div class="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-1 h-full bg-slate-300"></div>
+                            <p class="text-[9px] sm:text-[10px] text-slate-400 font-bold tracking-wider mb-1 uppercase pl-2">内容内核</p>
+                            <p class="text-slate-700 font-medium text-xs sm:text-sm truncate pl-2">${state.activeIdeaObj?.title}</p>
+                        </div>
+                        <div class="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-1 h-full bg-slate-900"></div>
+                            <p class="text-[9px] sm:text-[10px] text-slate-400 font-bold tracking-wider mb-1 uppercase pl-2">极简标题</p>
+                            <p class="text-slate-700 font-medium text-xs sm:text-sm truncate pl-2">${state.selectedTitle}</p>
+                        </div>
+                    </div>`;
+
+                if (!state.isLoading && state.finalCopy) {
+                    const hasRisk = state.detectedWords.length > 0;
+                    html += `<div class="mb-4 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between shadow-sm border gap-2 sm:gap-0 ${hasRisk ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}">
+                        <div class="flex items-center gap-1.5 sm:gap-2">
+                            ${hasRisk ? 
+                                `<i data-lucide="alert-triangle" class="w-4 h-4 sm:w-[18px] sm:h-[18px] text-red-500 flex-shrink-0"></i>
+                                 <span class="text-xs sm:text-sm font-bold text-red-700">危险！含违规限流词：</span>
+                                 <span class="text-[10px] sm:text-sm text-red-600 bg-red-100 px-1.5 sm:px-2 py-0.5 rounded font-mono truncate max-w-[100px] sm:max-w-none">${state.detectedWords.join(', ')}</span>` 
+                                : 
+                                `<i data-lucide="shield-check" class="w-4 h-4 sm:w-[18px] sm:h-[18px] text-emerald-500 flex-shrink-0"></i>
+                                 <span class="text-xs sm:text-sm font-bold text-emerald-700">小红书合规检测通过</span>`
+                            }
+                        </div>
+                        ${hasRisk ? `<button onclick="handleRefineCopy('必须删除或替换掉文案里的这些敏感词汇：${state.detectedWords.join('、')}，换成合规的表达。')" class="self-start sm:self-auto bg-red-500 hover:bg-red-600 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1.5 rounded-lg flex items-center gap-1"><i data-lucide="sparkles" class="w-3 h-3"></i> 让AI自动净化</button>` : ''}
+                    </div>`;
+                }
+
+                if (state.isLoading) {
+                    html += `<div class="flex-1 min-h-[300px] flex flex-col items-center justify-center text-slate-500 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="loader mb-4 border-slate-900"></div>
+                        <p class="font-medium text-slate-700 text-sm">正在撰写高级感文案...</p>
+                    </div></div>`;
+                } else {
+                    const hasRisk = state.detectedWords.length > 0;
+                    const displayCopy = hasRisk ? renderHighlightedCopy(state.finalCopy, state.detectedWords) : state.finalCopy;
+                    
+                    html += `<div class="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col flex-1 overflow-hidden">
+                        <div class="p-3 sm:p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                            <span class="font-bold text-sm sm:text-base text-slate-800 flex items-center gap-1.5 sm:gap-2">
+                                <i data-lucide="file-text" class="w-4 h-4 sm:w-[18px] sm:h-[18px] text-slate-400"></i> 小红书文案
+                            </span>
+                            <div class="flex items-center gap-1 sm:gap-2">
+                                <button onclick="generateCopy('${state.selectedTitle.replace(/'/g, "\\'")}')" class="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs sm:text-sm font-medium">
+                                    <i data-lucide="refresh-cw" class="w-3 h-3 sm:w-3.5 sm:h-3.5"></i> <span class="hidden sm:inline">换一种写法</span>
+                                </button>
+                                <button id="copy-btn" onclick="copyTextToClipboard()" ${hasRisk ? 'disabled' : ''} class="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1 sm:py-1.5 bg-slate-900 text-white disabled:bg-slate-300 rounded-lg text-xs sm:text-sm font-medium">
+                                    <i data-lucide="copy" class="w-3 h-3 sm:w-4 sm:h-4"></i> 复制全文
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="p-4 sm:p-6 overflow-y-auto max-h-[400px] sm:max-h-[500px] flex-1 bg-white hide-scrollbar">
+                            <div class="text-sm sm:text-[15px] leading-relaxed whitespace-pre-wrap text-slate-700 font-medium">${displayCopy}</div>
+                        </div>
+
+                        <div class="p-3 sm:p-4 border-t border-slate-100 bg-slate-50">
+                            <div class="flex items-center gap-2 sm:gap-3">
+                                <input type="text" id="feedback-input" placeholder="输入修改意见，如：太长了、语气再浪漫点..." class="flex-1 bg-white border border-slate-200 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+                                <button onclick="handleRefineCopy()" class="bg-slate-900 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2 shadow-sm">
+                                    <i data-lucide="send" class="w-3 h-3 sm:w-4 sm:h-4"></i> 优化
+                                </button>
+                            </div>
+                        </div>
+                    </div></div>`;
+                }
+            }
+            
+            els.workflowContainer.innerHTML = html;
+            
+            // 绑定回车事件
+            const feedbackInput = document.getElementById('feedback-input');
+            if (feedbackInput) {
+                feedbackInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') handleRefineCopy();
+                });
+            }
+            
+            lucide.createIcons();
+        };
+
+        // 事件监听
+        els.fileInput.addEventListener('change', handleImageUpload);
+
+        // 初始渲染
+        renderStepIndicator();
+        updateLeftPanel();
+
+    </script>
+</body>
+</html>
