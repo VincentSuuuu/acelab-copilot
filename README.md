@@ -1,3 +1,4 @@
 # acelab-copilot
-## https://aistudio.google.com/api-keys 
-### API-KEY: Acelab
+## https://vincentsuuuu.github.io/acelab-copilot/ 
+
+### API-KEY: https://aistudio.google.com/api-keys 
