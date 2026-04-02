@@ -39,10 +39,13 @@
                     <p class="text-[10px] sm:text-[11px] text-slate-500 font-bold tracking-widest uppercase mt-0.5">Safe Content Engine</p>
                 </div>
             </div>
-            <div class="flex items-center">
+            <div class="flex items-center gap-2 sm:gap-3">
                 <span class="text-xs sm:text-sm font-medium text-slate-500 flex items-center gap-1.5 bg-slate-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full">
                     Laura's Workspace <i data-lucide="heart" class="w-3 h-3 sm:w-4 sm:h-4 text-rose-500 fill-rose-500"></i>
                 </span>
+                <button onclick="configureApiKey()" class="text-slate-400 hover:text-slate-900 transition-colors" title="设置 API Key">
+                    <i data-lucide="settings" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                </button>
             </div>
         </div>
         
@@ -94,7 +97,7 @@
 
     <script>
         // --- 核心配置与状态 ---
-        const API_KEY = "AIzaSyAX4eXXdB0_QTyIzmBsPhWJnZ1mrQ8mFt8"; // 实际使用时需要配置，或者由运行环境注入
+        let API_KEY = localStorage.getItem('acelab_api_key') || ""; // 从本地缓存读取密钥
         const SENSITIVE_WORDS = [
             '顶级', '天花板', '唯一', '首家', '独家', '绝版', '全网首发', 
             '史无前例', '绝无仅有', '第一', '最强', '最高级', '最好', '最美', 
@@ -183,8 +186,23 @@
             return highlightedText;
         };
 
+        // 配置 API Key (供外部独立运行时使用)
+        window.configureApiKey = () => {
+            const key = prompt("第一次使用请配置您的 Gemini API Key：\n(密钥仅保存在您的手机浏览器本地，绝对安全)", API_KEY);
+            if (key !== null) {
+                API_KEY = key.trim();
+                localStorage.setItem('acelab_api_key', API_KEY);
+                if (API_KEY) alert("API Key 保存成功！可以开始使用了。");
+            }
+        };
+
         // API 调用封装
         const callGeminiAPI = async (prompt, systemInstruction = "", expectJson = false) => {
+            if (!API_KEY) {
+                window.configureApiKey();
+                if (!API_KEY) throw new Error("需要配置 API Key 才能使用 AI 功能哦~");
+            }
+            
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
             
             const parts = [{ text: prompt }];
@@ -329,7 +347,10 @@
 
         // 2. 提取灵感脑暴
         window.fetchIdeas = async (targetHistory) => {
-            if(!API_KEY) { alert("请在代码中配置您的 API_KEY"); return; }
+            if(!API_KEY) { 
+                window.configureApiKey(); 
+                if(!API_KEY) return; 
+            }
             state.isLoading = true; renderWorkflow();
             
             try {
