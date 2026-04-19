@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -36,7 +37,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-900">Ace Lab <span class="text-rose-600">Max</span></h1>
-                    <!-- 你的专属爱意签名 -->
+                    <!-- 专属爱意签名 -->
                     <p class="text-[10px] sm:text-[11px] text-slate-500 font-bold tracking-widest mt-0.5">Powered by 亲爱的老公oba</p>
                 </div>
             </div>
@@ -58,7 +59,7 @@
 
     <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8">
         
-        <!-- 左侧：图片资产区 -->
+        <!-- 左侧：图片资产与配置区 -->
         <div class="md:col-span-4 space-y-6">
             <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm sticky top-24 sm:top-40">
                 <div class="flex items-center justify-between mb-4">
@@ -78,7 +79,7 @@
                 
                 <input type="file" id="file-input" accept="image/*" multiple class="hidden">
 
-                <!-- 操作按钮区 -->
+                <!-- 操作按钮区 (包含主题输入框) -->
                 <div id="left-actions-container" class="mt-4">
                     <!-- 动态生成 -->
                 </div>
@@ -130,12 +131,12 @@
 
     <!-- 提示消息 Toast -->
     <div id="toast-message" class="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-2.5 rounded-xl shadow-lg z-50 text-sm font-medium hidden opacity-0 transition-opacity duration-300 flex items-center gap-2">
-        <i data-lucide="check-circle" class="w-4 h-4 text-green-400"></i> <span id="toast-text"></span>
+        <i data-lucide="info" class="w-4 h-4 text-amber-400" id="toast-icon"></i> <span id="toast-text"></span>
     </div>
 
     <script>
         // --- 核心配置与状态 ---
-        let API_KEY = localStorage.getItem('acelab_api_key') || ""; // 从本地缓存读取密钥
+        let API_KEY = localStorage.getItem('acelab_api_key') || ""; 
         const SENSITIVE_WORDS = [
             '顶级', '天花板', '唯一', '首家', '独家', '绝版', '全网首发', 
             '史无前例', '绝无仅有', '第一', '最强', '最高级', '最好', '最美', 
@@ -145,9 +146,10 @@
 
         let state = {
             images: [], // { data: base64, mimeType: string }
+            photoContext: '', // 保存照片主题
             currentStep: 1,
-            brainstormHistory: [], // {title, desc}[]
-            currentIdeas: [], // {title, desc}[]
+            brainstormHistory: [], 
+            currentIdeas: [], 
             activeIdeaObj: null,
             titles: [],
             selectedTitle: '',
@@ -240,7 +242,7 @@
             API_KEY = val;
             localStorage.setItem('acelab_api_key', API_KEY);
             closeApiModal();
-            showToast("API Key 保存成功！可以开始使用了。");
+            showToast("API Key 保存成功！可以开始使用了。", "check-circle");
         };
 
         window.showErrorModal = (msg) => {
@@ -249,9 +251,20 @@
             lucide.createIcons();
         };
 
-        window.showToast = (msg) => {
+        window.showToast = (msg, iconType="info") => {
             const toast = document.getElementById('toast-message');
             document.getElementById('toast-text').textContent = msg;
+            
+            const iconEl = document.getElementById('toast-icon');
+            if(iconType === 'check-circle') {
+                iconEl.setAttribute('data-lucide', 'check-circle');
+                iconEl.className = 'w-4 h-4 text-green-400';
+            } else {
+                iconEl.setAttribute('data-lucide', 'info');
+                iconEl.className = 'w-4 h-4 text-amber-400';
+            }
+            lucide.createIcons();
+
             toast.classList.remove('hidden');
             void toast.offsetWidth; // force reflow
             toast.classList.remove('opacity-0');
@@ -261,14 +274,14 @@
             }, 3000);
         };
 
-        // API 调用封装 (带强力错误捕获)
+        // API 调用封装 
         const callGeminiAPI = async (prompt, systemInstruction = "", expectJson = false) => {
             if (!API_KEY) {
                 showApiModal();
                 throw new Error("请先配置 API Key");
             }
             
-            // 已更新为用户要求的 gemini-3.1-pro-preview 模型
+            // 已更新为使用最新的 gemini-3.1-pro-preview 模型
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${API_KEY}`;
             
             const parts = [{ text: prompt }];
@@ -294,22 +307,14 @@
                         const errData = await response.json().catch(()=>({}));
                         const errMsg = errData.error?.message || response.statusText;
                         
-                        // 专门识别 429 额度超限错误
-                        if (response.status === 429) {
-                            throw new Error(`[HTTP 429] QUOTA_EXCEEDED`);
-                        }
-                        // 专门识别 503 服务器繁忙错误
-                        if (response.status === 503) {
-                            throw new Error(`[HTTP 503] SERVER_BUSY`);
-                        }
-
+                        if (response.status === 429) throw new Error(`[HTTP 429] QUOTA_EXCEEDED`);
+                        if (response.status === 503) throw new Error(`[HTTP 503] SERVER_BUSY`);
                         throw new Error(`[HTTP ${response.status}] ${errMsg}`);
                     }
                     
                     const result = await response.json();
                     let text = result.candidates[0].content.parts[0].text;
                     
-                    // 尝试清理可能的 Markdown 代码块包裹
                     if (expectJson) {
                         text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
                         return JSON.parse(text);
@@ -318,29 +323,22 @@
                 } catch (error) {
                     retries++;
                     console.error("API Error:", error);
-                    
-                    // 捕获具体的错误信息
                     lastErrorMsg = error.message || error.toString();
                     if (error.name === 'TypeError' || lastErrorMsg.includes('Failed to fetch')) {
                         lastErrorMsg = "网络连接被拦截 (Failed to fetch)";
                     }
 
                     if (retries >= 3) {
-                        // 针对额度用完的定制化提示
                         if (lastErrorMsg.includes('429')) {
                             showErrorModal(`【温柔提示】：\n亲爱的 Laura，AI 引擎的思考太快，免费额度暂时耗尽啦 💦\n\n👉 方案一：去喝口水，等待 1 分钟后再试一次。\n👉 方案二：大声呼叫亲爱的老公oba帮你升级一下 API 额度配置！\n\n(错误代码: Quota Exceeded)`);
-                        } 
-                        // 针对服务器拥挤的定制化提示
-                        else if (lastErrorMsg.includes('503')) {
+                        } else if (lastErrorMsg.includes('503')) {
                             showErrorModal(`【温柔提示】：\n亲爱的 Laura，现在全球使用 AI 的人太多，谷歌的服务器暂时大堵车啦 🚗🚗🚗\n\n👉 别着急，这不是你的网络或配置问题。请稍微等个十几秒，重新点击试试看！\n\n(错误代码: Server Busy)`);
-                        }
-                        else {
+                        } else {
                             showErrorModal(`【排查建议】：\n1. 请检查 API Key 是否正确（点击右上角⚙️图标）。\n2. 若在微信内，请点击右上角[在 Safari/浏览器 中打开]。\n3. 请确保网络代理 (VPN) 开启全局模式。\n4. 若 Key 被封禁，请申请新 Key 重新填入。\n\n【原始错误】:\n${lastErrorMsg}`);
                         }
                         throw new Error('网络请求彻底失败');
                     }
                     
-                    // 失败后稍微等待一下再重试，针对 429 和 503 可以等久一点
                     const isOverloaded = lastErrorMsg.includes('429') || lastErrorMsg.includes('503');
                     await new Promise(resolve => setTimeout(resolve, isOverloaded ? 3000 : 1500));
                 }
@@ -381,7 +379,6 @@
                 };
                 reader.readAsDataURL(file);
             }
-            // 清空input file value，允许重复上传同一张照片
             e.target.value = '';
         };
 
@@ -392,10 +389,47 @@
         };
 
         const resetAllState = () => {
-            state = { images: state.images, currentStep: 1, brainstormHistory: [], currentIdeas: [], activeIdeaObj: null, titles: [], selectedTitle: '', finalCopy: '', detectedWords: [], isLoading: false };
+            // 重置状态，但保留当前填写的主题，免得 Laura 重新打字
+            state = { 
+                images: state.images, 
+                photoContext: state.photoContext, 
+                currentStep: 1, 
+                brainstormHistory: [], 
+                currentIdeas: [], 
+                activeIdeaObj: null, 
+                titles: [], 
+                selectedTitle: '', 
+                finalCopy: '', 
+                detectedWords: [], 
+                isLoading: false 
+            };
             renderStepIndicator();
             renderWorkflow();
             updateLeftPanel();
+        };
+
+        // 将快捷标签填入输入框
+        window.setContextTag = (tag) => {
+            const input = document.getElementById('photo-context-input');
+            if(input) {
+                input.value = tag;
+                input.focus();
+            }
+        };
+
+        // 验证主题并启动脑暴
+        window.startBrainstorm = () => {
+            const contextInput = document.getElementById('photo-context-input');
+            if(contextInput) {
+                const val = contextInput.value.trim();
+                if(!val) {
+                    showToast("请先告诉 AI 这组照片的主题哦~");
+                    contextInput.focus();
+                    return;
+                }
+                state.photoContext = val;
+            }
+            fetchIdeas([]);
         };
 
         // 更新左侧面板 UI
@@ -427,18 +461,32 @@
             }
             els.imageGrid.innerHTML = gridHtml;
             
-            // 渲染底部按钮
+            // 渲染底部按钮及主题配置区
             let actionsHtml = '';
             if (state.images.length > 0 && state.currentStep === 1 && state.currentIdeas.length === 0 && !state.isLoading) {
                 actionsHtml = `
-                    <button onclick="fetchIdeas([])" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-sm sm:text-base font-medium py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95">
+                    <div class="mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200 animate-fade-in">
+                        <label class="block text-[11px] sm:text-xs font-bold text-slate-700 mb-2">📸 这组照片的主题是？(必填)</label>
+                        <input type="text" id="photo-context-input" placeholder="如：室内主纱、草坪婚礼、宝宝满月..." value="${state.photoContext}" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all mb-2.5 shadow-sm">
+                        <div class="flex flex-wrap gap-1.5">
+                            <span onclick="setContextTag('婚纱照')" class="cursor-pointer text-[10px] sm:text-[11px] font-medium bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 px-2 py-1 rounded transition-colors shadow-sm">婚纱照</span>
+                            <span onclick="setContextTag('婚礼跟拍')" class="cursor-pointer text-[10px] sm:text-[11px] font-medium bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 px-2 py-1 rounded transition-colors shadow-sm">婚礼跟拍</span>
+                            <span onclick="setContextTag('宝宝满月宴')" class="cursor-pointer text-[10px] sm:text-[11px] font-medium bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 px-2 py-1 rounded transition-colors shadow-sm">宝宝满月宴</span>
+                            <span onclick="setContextTag('孕妇照')" class="cursor-pointer text-[10px] sm:text-[11px] font-medium bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 px-2 py-1 rounded transition-colors shadow-sm">孕妇照</span>
+                            <span onclick="setContextTag('个人写真')" class="cursor-pointer text-[10px] sm:text-[11px] font-medium bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 px-2 py-1 rounded transition-colors shadow-sm">个人写真</span>
+                        </div>
+                    </div>
+                    <button onclick="startBrainstorm()" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-sm sm:text-base font-medium py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95">
                         <i data-lucide="sparkles" class="w-4 h-4 sm:w-5 sm:h-5"></i> 提取灵感切入点
                     </button>
                 `;
             } else if (state.images.length > 0 && (state.currentStep > 1 || state.currentIdeas.length > 0)) {
                 actionsHtml = `
-                    <button onclick="if(confirm('重新开始将清空当前进度，确定吗？')) resetAllState()" class="w-full bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium py-2 sm:py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all">
-                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i> 重新分析照片
+                    <div class="mb-3 text-[11px] sm:text-xs font-medium text-slate-500 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 flex justify-between items-center">
+                        <span>当前主题：<span class="text-slate-900 font-bold">${state.photoContext}</span></span>
+                    </div>
+                    <button onclick="if(confirm('重新开始将清空当前进度，确定吗？')) resetAllState()" class="w-full bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium py-2 sm:py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i> 更换主题或重新分析
                     </button>
                 `;
             }
@@ -453,7 +501,7 @@
             }
         };
 
-        // 2. 提取灵感脑暴
+        // 2. 提取灵感脑暴 (融入了主题参数)
         window.fetchIdeas = async (targetHistory) => {
             if(!API_KEY) { 
                 showApiModal(); 
@@ -466,30 +514,31 @@
                 const parentIdea = targetHistory.length > 0 ? targetHistory[targetHistory.length - 1] : null;
 
                 if (!parentIdea) {
-                    prompt = `请深度分析我提供的婚纱照。
-                    作为"Ace Lab"婚纱摄影工作室的主理人Laura，你的品牌核心是：白亮透的画面质感、极其细腻柔美的女性人像刻画、以及自然松弛有温度的情绪捕捉。
-                    请结合小红书受众偏好，给出5-6个截然不同的发文头脑风暴切入点。
+                    prompt = `请深度分析我提供的这组照片。
+                    【核心背景】：这组照片的主题/场景是“${state.photoContext}”。
+                    作为"Ace Lab"摄影工作室的主理人Laura，你的品牌核心是：白亮透的画面质感、极其细腻柔美的人物刻画、以及自然松弛有温度的情绪捕捉。
+                    请结合小红书受众偏好（针对${state.photoContext}相关的人群），给出5-6个截然不同的发文头脑风暴切入点。
                     【发散方向要求】请务必涵盖以下几个维度：
-                    1. 情绪共鸣：画面中传达的爱意、松弛感或感动瞬间。
-                    2. 女性魅力展现：如何捕捉并放大新娘独有的柔美、气质或身材优势。
-                    3. 质感与审美：照片中"白亮透"的高级感是如何体现的（光影/色彩/服饰搭配）。
-                    4. 幕后故事感：让人联想到拍摄当天的有趣互动或新人的爱情故事。
+                    1. 情绪共鸣：画面中传达的情感、松弛感或某个具有纪念意义的瞬间。
+                    2. 人物魅力展现：如何捕捉并放大照片主角（如新娘/新人/宝宝/孕妈等）独有的美感、气质或状态。
+                    3. 质感与审美：照片中"白亮透"的高级感是如何体现的（光影/色彩/服饰搭配/场景布置）。
+                    4. 幕后故事感：让人联想到拍摄当天的有趣互动或背后的情感连接。
                     
-                    请返回JSON数组格式：[{"title": "切入点标题", "desc": "简短描述为什么这个角度能打动备婚新娘，以及具体写画面的什么细节"}]`;
+                    请返回JSON数组格式：[{"title": "切入点标题", "desc": "简短描述为什么这个角度能打动对应的受众，以及具体写画面的什么细节"}]`;
                 } else {
                     const pathString = targetHistory.map(h => h.title).join(" -> ");
-                    prompt = `基于我提供的婚纱照，发文大方向已定为：【${pathString}】。当前思路是：${parentIdea.desc}。
+                    prompt = `基于我提供的【${state.photoContext}】照片，发文大方向已定为：【${pathString}】。当前思路是：${parentIdea.desc}。
                     请根据Ace Lab"细腻柔美、有温度"的品牌基调，继续深入，为我延伸出3-5个更具体、可以直接作为文章核心立意的细分发散点。
                     要求：必须具体到画面中的某个动作、微表情、光线细节或某种具体的情感状态。
                     请返回JSON数组格式：[{"title": "细分角度标题", "desc": "简短描述具体展开描写画面的什么细节或情绪"}]`;
                 }
 
-                const results = await callGeminiAPI(prompt, "你是一个高级婚纱摄影工作室的小红书内容策划专家。", true);
+                const results = await callGeminiAPI(prompt, "你是一个高级摄影工作室的小红书内容策划专家。", true);
                 state.brainstormHistory = targetHistory;
                 state.currentIdeas = results;
                 state.currentStep = 1;
             } catch (error) {
-                // 错误已在 callGeminiAPI 中被 alert，这里只需恢复状态
+                // 错误已在 callGeminiAPI 中被拦截
             } finally {
                 state.isLoading = false;
                 renderStepIndicator();
@@ -503,18 +552,18 @@
             generateTitles(idea);
         };
 
-        // 3. 生成标题
+        // 3. 生成标题 (融入了主题参数)
         window.generateTitles = async (ideaObj) => {
             state.isLoading = true; state.currentStep = 2; renderStepIndicator(); renderWorkflow();
             try {
                 const fullIdeaStr = state.brainstormHistory.map(h => h.title).concat(ideaObj.title).join(" -> ");
-                const prompt = `结合我提供的照片，我要写一篇小红书。核心切入点是：【${fullIdeaStr}】。具体思路是：${ideaObj.desc}。
+                const prompt = `结合我提供的照片（主题为：【${state.photoContext}】），我要写一篇小红书。核心切入点是：【${fullIdeaStr}】。具体思路是：${ideaObj.desc}。
                 请为我生成6-8个极具"网感"的小红书短标题。
                 
-                【品牌人设设定】：你是一个温暖、细腻的婚纱摄影主理人，像新人的知心朋友。
+                【品牌人设设定】：你是一个温暖、细腻的摄影主理人，像客户的知心朋友。
                 【标题风格要求】：
-                1. 情绪共鸣为主：多用有温度的词汇（如：松弛感、偏爱、温柔、定格、心动），少用生硬的营销词。
-                2. 制造画面感/悬念：比如“被这一抹夕阳治愈了”、“这是我理想中爱情的样子”。
+                1. 情绪共鸣为主：多用有温度的词汇（如：松弛感、偏爱、温柔、定格、治愈），少用生硬的营销词。
+                2. 制造画面感/悬念：引发目标群体（新娘、孕妈、宝妈等）的好奇和共鸣。
                 3. 迎合女性受众：聚焦于“美”、“自在”、“情绪价值”。
                 4. 【硬性规定】：字数必须严格控制在20个字以内！严禁使用中国《广告法》和小红书违禁词（如最、第一、顶级、天花板等）。可以包含1个符合语境的emoji。
                 
@@ -533,28 +582,28 @@
             generateCopy(title);
         };
 
-        // 4. 生成文案
+        // 4. 生成文案 (融入了主题参数)
         window.generateCopy = async (title) => {
             state.isLoading = true; state.currentStep = 3; state.finalCopy = ''; state.detectedWords = []; renderStepIndicator(); renderWorkflow();
             try {
                 const fullIdeaStr = state.brainstormHistory.map(h => h.title).concat(state.activeIdeaObj.title).join(" -> ");
-                const prompt = `结合照片，为"Ace Lab"婚纱摄影工作室撰写小红书正文。
+                const prompt = `结合照片，为"Ace Lab"摄影工作室撰写一篇关于【${state.photoContext}】的小红书正文。
                 切入点：【${fullIdeaStr}】。标题：【${title}】。
                 
                 【人设与品牌基调】(极其重要)：
-                你是Ace Lab的主理人Laura，正在像朋友圈发动态一样，和备婚新娘们分享照片。
-                你的文字风格：温柔、细腻、有同理心、有高级的审美感知。你擅长捕捉画面中"白亮透"的质感和女性柔美的瞬间。
+                你是Ace Lab的主理人Laura，正在像朋友圈发动态一样，和受众分享这组${state.photoContext}照片。
+                你的文字风格：温柔、细腻、有同理心、有高级的审美感知。你擅长捕捉画面中"白亮透"的质感和女性/人物最真实柔美的瞬间。
                 
                 【写作框架指导】：
-                1. 开篇定调（1-2句）：用一个充满情绪感的画面描述或内心感受开场。（例如：“比起完美的姿势，我更爱看她笑得毫无防备的样子。”）
-                2. 核心拆解（2-3句）：结合照片特点，谈谈为什么这张照片特别？（可以提一句光线、婚纱的质感，或者是他们两人之间的互动有多松弛）。展现你作为专业摄影师但又很有温度的观察。
-                3. 情感共鸣（1-2句）：升华主题，连接到“爱情”、“备婚心态”或“理想中的婚纱照”。
+                1. 开篇定调（1-2句）：用一个充满情绪感的画面描述或内心感受开场。
+                2. 核心拆解（2-3句）：结合照片特点，谈谈为什么这组${state.photoContext}特别？（可以提光线、质感、或者人物之间的互动有多松弛）。展现你作为专业摄影师但又很有温度的观察。
+                3. 情感共鸣（1-2句）：升华主题，连接到相应的情感内核（如爱情、亲情、成长的喜悦等）。
                 
                 【排版与红线规则】：
                 1. 极度精简有呼吸感：全篇文案不要超过150字！拒绝长篇大论，每句话独立成行，多换行留白。
                 2. 像真人随笔：不要用复杂的修辞堆砌，像对朋友说话一样自然。少量点缀符合氛围的emoji（2-3个即可）。
-                3. 互动转化：在正文结束后，空一行，加一句温暖的简短互动（如：“期待听听你们的备婚故事” 或 “喜欢这种轻盈松弛的质感吗？”）。
-                4. 严格合规：严禁极限广告词和违规导流词。文末加5-8个精准Hashtag，必须包含 #AceLab定制 和 #AceLab婚纱摄影。
+                3. 互动转化：在正文结束后，空一行，加一句温暖的简短互动（如期待大家的故事，或询问喜欢这种质感吗等）。
+                4. 严格合规：严禁极限广告词和违规导流词。文末加5-8个精准Hashtag，必须包含 #AceLab定制 和 #AceLab摄影。
                 
                 请直接输出文案内容即可，不需要解释。`;
 
@@ -576,7 +625,7 @@
             
             state.isLoading = true; renderWorkflow();
             try {
-                const prompt = `你之前生成了以下文案：\n${state.finalCopy}\n
+                const prompt = `你之前生成了以下关于【${state.photoContext}】的文案：\n${state.finalCopy}\n
                 主理人Laura提出了以下修改意见：【${feedbackText}】\n
                 请根据意见优化文案。【合规红线】：绝对禁止出现《广告法》违禁词（最、第一、顶级等）和敏感引流词（加微信等）。
                 直接输出优化后的文案内容，保持精简、自然和留白排版。`;
@@ -622,7 +671,7 @@
                  html = `
                     <div class="h-[300px] flex flex-col items-center justify-center text-slate-500 bg-white rounded-2xl border border-slate-200 shadow-sm animate-fade-in">
                         <div class="loader mb-4 border-slate-900"></div>
-                        <p class="font-medium text-slate-700 text-sm sm:text-base">正在深度解析画面特征...</p>
+                        <p class="font-medium text-slate-700 text-sm sm:text-base">正在深度解析【${state.photoContext}】...</p>
                         <p class="text-xs sm:text-sm mt-1">发散创意思维中</p>
                     </div>`;
             } else if (state.currentStep === 1 && state.currentIdeas.length > 0) {
@@ -642,7 +691,7 @@
                     ${breadcrumbsHtml}
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                         <h3 class="font-bold text-base sm:text-lg text-slate-800 flex items-center gap-2">
-                            ${state.brainstormHistory.length === 0 ? '✨ 为您提取了以下方向：' : '🔍 基于该方向的深度挖掘：'}
+                            ${state.brainstormHistory.length === 0 ? `✨ 关于【${state.photoContext}】的切入方向：` : '🔍 基于该方向的深度挖掘：'}
                         </h3>
                         <button onclick="fetchIdeas(state.brainstormHistory)" class="self-start sm:self-auto flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-900 bg-white border border-slate-200 px-2 sm:px-3 py-1.5 rounded-lg shadow-sm">
                             <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> 换一批思路
@@ -673,7 +722,7 @@
                     <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6 flex gap-2 sm:gap-3">
                         <div class="mt-0.5"><i data-lucide="check-circle-2" class="text-indigo-500 w-4 h-4 sm:w-5 sm:h-5"></i></div>
                         <div>
-                            <p class="text-[10px] sm:text-xs text-indigo-400 font-bold tracking-wider mb-0.5 sm:mb-1">已选定创作核心</p>
+                            <p class="text-[10px] sm:text-xs text-indigo-400 font-bold tracking-wider mb-0.5 sm:mb-1">已选定创作核心 (${state.photoContext})</p>
                             <p class="text-indigo-900 font-medium text-xs sm:text-sm leading-relaxed">${coreIdeaStr}</p>
                         </div>
                     </div>`;
@@ -724,7 +773,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
                         <div class="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm relative overflow-hidden">
                             <div class="absolute top-0 left-0 w-1 h-full bg-slate-300"></div>
-                            <p class="text-[9px] sm:text-[10px] text-slate-400 font-bold tracking-wider mb-1 uppercase pl-2">内容内核</p>
+                            <p class="text-[9px] sm:text-[10px] text-slate-400 font-bold tracking-wider mb-1 uppercase pl-2">内容内核 (${state.photoContext})</p>
                             <p class="text-slate-700 font-medium text-xs sm:text-sm truncate pl-2">${state.activeIdeaObj?.title}</p>
                         </div>
                         <div class="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm relative overflow-hidden">
@@ -814,3 +863,6 @@
     </script>
 </body>
 </html>
+
+
+```
