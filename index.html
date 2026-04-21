@@ -1,4 +1,4 @@
-```html
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -37,7 +37,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-900">Ace Lab <span class="text-rose-600">Max</span></h1>
-                    <!-- 专属爱意签名 -->
+                    <!-- 你的专属爱意签名 -->
                     <p class="text-[10px] sm:text-[11px] text-slate-500 font-bold tracking-widest mt-0.5">Powered by 亲爱的老公oba</p>
                 </div>
             </div>
@@ -145,8 +145,8 @@
         ];
 
         let state = {
-            images: [], // { data: base64, mimeType: string }
-            photoContext: '', // 保存照片主题
+            images: [], 
+            photoContext: '', 
             currentStep: 1,
             brainstormHistory: [], 
             currentIdeas: [], 
@@ -174,7 +174,6 @@
 
         // --- 工具函数 ---
         
-        // 渲染步骤指示器
         const renderStepIndicator = () => {
             const steps = [
                 { num: 1, icon: 'lightbulb', label: '灵感脑暴' },
@@ -209,13 +208,11 @@
             lucide.createIcons();
         };
 
-        // 敏感词扫描
         const scanForSensitiveWords = (text) => {
             if(!text) return [];
             return [...new Set(SENSITIVE_WORDS.filter(word => text.includes(word)))];
         };
 
-        // 高亮敏感词
         const renderHighlightedCopy = (text, foundWords) => {
             if (foundWords.length === 0) return text;
             let highlightedText = text;
@@ -226,7 +223,6 @@
             return highlightedText;
         };
 
-        // --- 自定义弹窗逻辑 ---
         window.showApiModal = () => {
             document.getElementById('api-key-input').value = API_KEY;
             document.getElementById('api-modal').classList.remove('hidden');
@@ -266,7 +262,7 @@
             lucide.createIcons();
 
             toast.classList.remove('hidden');
-            void toast.offsetWidth; // force reflow
+            void toast.offsetWidth; 
             toast.classList.remove('opacity-0');
             setTimeout(() => {
                 toast.classList.add('opacity-0');
@@ -274,15 +270,14 @@
             }, 3000);
         };
 
-        // API 调用封装 
+        // API 调用 (保持闪电响应的 2.5 flash 模型)
         const callGeminiAPI = async (prompt, systemInstruction = "", expectJson = false) => {
             if (!API_KEY) {
                 showApiModal();
                 throw new Error("请先配置 API Key");
             }
             
-            // 已更新为使用最新的 gemini-3.1-pro-preview 模型
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${API_KEY}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
             
             const parts = [{ text: prompt }];
             state.images.forEach(img => {
@@ -347,7 +342,6 @@
 
         // --- 核心业务逻辑 ---
 
-        // 1. 处理图片上传
         const handleImageUpload = async (e) => {
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
@@ -389,7 +383,6 @@
         };
 
         const resetAllState = () => {
-            // 重置状态，但保留当前填写的主题，免得 Laura 重新打字
             state = { 
                 images: state.images, 
                 photoContext: state.photoContext, 
@@ -408,7 +401,6 @@
             updateLeftPanel();
         };
 
-        // 将快捷标签填入输入框
         window.setContextTag = (tag) => {
             const input = document.getElementById('photo-context-input');
             if(input) {
@@ -417,13 +409,12 @@
             }
         };
 
-        // 验证主题并启动脑暴
         window.startBrainstorm = () => {
             const contextInput = document.getElementById('photo-context-input');
             if(contextInput) {
                 const val = contextInput.value.trim();
                 if(!val) {
-                    showToast("请先告诉 AI 这组照片的主题哦~");
+                    showToast("请先给这组照片设定一个小主题哦~");
                     contextInput.focus();
                     return;
                 }
@@ -432,11 +423,10 @@
             fetchIdeas([]);
         };
 
-        // 更新左侧面板 UI
+        // UI 渲染：精致化后的左侧主题面板
         const updateLeftPanel = () => {
             els.imageCount.textContent = `(${state.images.length}/6)`;
             
-            // 渲染图片网格
             let gridHtml = '';
             state.images.forEach((img, idx) => {
                 const colSpanClass = (idx === 0 && state.images.length === 1) ? 'col-span-2' : '';
@@ -461,19 +451,20 @@
             }
             els.imageGrid.innerHTML = gridHtml;
             
-            // 渲染底部按钮及主题配置区
             let actionsHtml = '';
             if (state.images.length > 0 && state.currentStep === 1 && state.currentIdeas.length === 0 && !state.isLoading) {
+                // 精致化设计的主题输入框，告别笨重感
                 actionsHtml = `
-                    <div class="mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200 animate-fade-in">
-                        <label class="block text-[11px] sm:text-xs font-bold text-slate-700 mb-2">📸 这组照片的主题是？(必填)</label>
-                        <input type="text" id="photo-context-input" placeholder="如：室内主纱、草坪婚礼、宝宝满月..." value="${state.photoContext}" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all mb-2.5 shadow-sm">
-                        <div class="flex flex-wrap gap-1.5">
-                            <span onclick="setContextTag('婚纱照')" class="cursor-pointer text-[10px] sm:text-[11px] font-medium bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 px-2 py-1 rounded transition-colors shadow-sm">婚纱照</span>
-                            <span onclick="setContextTag('婚礼跟拍')" class="cursor-pointer text-[10px] sm:text-[11px] font-medium bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 px-2 py-1 rounded transition-colors shadow-sm">婚礼跟拍</span>
-                            <span onclick="setContextTag('宝宝满月宴')" class="cursor-pointer text-[10px] sm:text-[11px] font-medium bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 px-2 py-1 rounded transition-colors shadow-sm">宝宝满月宴</span>
-                            <span onclick="setContextTag('孕妇照')" class="cursor-pointer text-[10px] sm:text-[11px] font-medium bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 px-2 py-1 rounded transition-colors shadow-sm">孕妇照</span>
-                            <span onclick="setContextTag('个人写真')" class="cursor-pointer text-[10px] sm:text-[11px] font-medium bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 px-2 py-1 rounded transition-colors shadow-sm">个人写真</span>
+                    <div class="mb-4 animate-fade-in">
+                        <div class="flex items-center border border-slate-200 bg-white rounded-xl overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-slate-900 focus-within:border-slate-900 transition-all">
+                            <div class="pl-3 text-slate-400"><i data-lucide="tag" class="w-4 h-4"></i></div>
+                            <input type="text" id="photo-context-input" placeholder="设定照片主题 (如: 极简主纱、满月宴)" value="${state.photoContext}" class="w-full border-none focus:ring-0 px-2 py-2.5 text-sm text-slate-700 bg-transparent outline-none">
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 mt-2.5">
+                            <span onclick="setContextTag('婚纱照')" class="cursor-pointer px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] rounded-lg transition-colors font-medium">婚纱照</span>
+                            <span onclick="setContextTag('婚礼跟拍')" class="cursor-pointer px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] rounded-lg transition-colors font-medium">婚礼跟拍</span>
+                            <span onclick="setContextTag('宝宝满月宴')" class="cursor-pointer px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] rounded-lg transition-colors font-medium">宝宝满月宴</span>
+                            <span onclick="setContextTag('孕妇照')" class="cursor-pointer px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] rounded-lg transition-colors font-medium">孕妇照</span>
                         </div>
                     </div>
                     <button onclick="startBrainstorm()" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-sm sm:text-base font-medium py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95">
@@ -482,8 +473,8 @@
                 `;
             } else if (state.images.length > 0 && (state.currentStep > 1 || state.currentIdeas.length > 0)) {
                 actionsHtml = `
-                    <div class="mb-3 text-[11px] sm:text-xs font-medium text-slate-500 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 flex justify-between items-center">
-                        <span>当前主题：<span class="text-slate-900 font-bold">${state.photoContext}</span></span>
+                    <div class="mb-3 text-xs font-medium text-slate-500 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 flex justify-between items-center shadow-sm">
+                        <span class="flex items-center gap-1.5"><i data-lucide="tag" class="w-3.5 h-3.5"></i> 锁定主题：${state.photoContext}</span>
                     </div>
                     <button onclick="if(confirm('重新开始将清空当前进度，确定吗？')) resetAllState()" class="w-full bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium py-2 sm:py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm">
                         <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i> 更换主题或重新分析
@@ -495,19 +486,20 @@
             lucide.createIcons();
             
             if(state.images.length > 0 && state.currentStep === 1 && state.currentIdeas.length === 0 && !state.isLoading) {
-                renderWorkflow(); // 显示初始提示
+                renderWorkflow(); 
             } else if (state.images.length === 0) {
-                 renderWorkflow(); // 恢复上传提示
+                 renderWorkflow(); 
             }
         };
 
-        // 2. 提取灵感脑暴 (融入了主题参数)
         window.fetchIdeas = async (targetHistory) => {
             if(!API_KEY) { 
                 showApiModal(); 
                 return; 
             }
-            state.isLoading = true; renderWorkflow();
+            state.isLoading = true; 
+            state.currentIdeas = []; // 修复：立即清空旧列表，从而瞬间触发加载动画
+            renderWorkflow();
             
             try {
                 let prompt = "";
@@ -520,8 +512,8 @@
                     请结合小红书受众偏好（针对${state.photoContext}相关的人群），给出5-6个截然不同的发文头脑风暴切入点。
                     【发散方向要求】请务必涵盖以下几个维度：
                     1. 情绪共鸣：画面中传达的情感、松弛感或某个具有纪念意义的瞬间。
-                    2. 人物魅力展现：如何捕捉并放大照片主角（如新娘/新人/宝宝/孕妈等）独有的美感、气质或状态。
-                    3. 质感与审美：照片中"白亮透"的高级感是如何体现的（光影/色彩/服饰搭配/场景布置）。
+                    2. 人物魅力展现：如何捕捉并放大照片主角独有的美感、气质或状态。
+                    3. 质感与审美：照片中"白亮透"的高级感是如何体现的。
                     4. 幕后故事感：让人联想到拍摄当天的有趣互动或背后的情感连接。
                     
                     请返回JSON数组格式：[{"title": "切入点标题", "desc": "简短描述为什么这个角度能打动对应的受众，以及具体写画面的什么细节"}]`;
@@ -538,7 +530,7 @@
                 state.currentIdeas = results;
                 state.currentStep = 1;
             } catch (error) {
-                // 错误已在 callGeminiAPI 中被拦截
+                // Error handled in API call
             } finally {
                 state.isLoading = false;
                 renderStepIndicator();
@@ -552,7 +544,6 @@
             generateTitles(idea);
         };
 
-        // 3. 生成标题 (融入了主题参数)
         window.generateTitles = async (ideaObj) => {
             state.isLoading = true; state.currentStep = 2; renderStepIndicator(); renderWorkflow();
             try {
@@ -562,16 +553,16 @@
                 
                 【品牌人设设定】：你是一个温暖、细腻的摄影主理人，像客户的知心朋友。
                 【标题风格要求】：
-                1. 情绪共鸣为主：多用有温度的词汇（如：松弛感、偏爱、温柔、定格、治愈），少用生硬的营销词。
-                2. 制造画面感/悬念：引发目标群体（新娘、孕妈、宝妈等）的好奇和共鸣。
+                1. 情绪共鸣为主：多用有温度的词汇，少用生硬的营销词。
+                2. 制造画面感/悬念：引发目标群体的好奇和共鸣。
                 3. 迎合女性受众：聚焦于“美”、“自在”、“情绪价值”。
-                4. 【硬性规定】：字数必须严格控制在20个字以内！严禁使用中国《广告法》和小红书违禁词（如最、第一、顶级、天花板等）。可以包含1个符合语境的emoji。
+                4. 【硬性规定】：字数必须严格控制在20个字以内！严禁使用中国《广告法》和小红书违禁词。可以包含1个符合语境的emoji。
                 
                 请返回一个JSON数组，格式如下：["标题1", "标题2", ...]`;
 
                 state.titles = await callGeminiAPI(prompt, "你是爆款标题制造机，深谙小红书规则，极其擅长写合规的短标题。", true);
             } catch (error) {
-                state.currentStep = 1; // 回退
+                state.currentStep = 1; 
             } finally {
                 state.isLoading = false; renderStepIndicator(); renderWorkflow();
             }
@@ -582,7 +573,6 @@
             generateCopy(title);
         };
 
-        // 4. 生成文案 (融入了主题参数)
         window.generateCopy = async (title) => {
             state.isLoading = true; state.currentStep = 3; state.finalCopy = ''; state.detectedWords = []; renderStepIndicator(); renderWorkflow();
             try {
@@ -592,17 +582,17 @@
                 
                 【人设与品牌基调】(极其重要)：
                 你是Ace Lab的主理人Laura，正在像朋友圈发动态一样，和受众分享这组${state.photoContext}照片。
-                你的文字风格：温柔、细腻、有同理心、有高级的审美感知。你擅长捕捉画面中"白亮透"的质感和女性/人物最真实柔美的瞬间。
+                你的文字风格：温柔、细腻、有同理心、有高级的审美感知。你擅长捕捉画面中"白亮透"的质感和人物最真实柔美的瞬间。
                 
                 【写作框架指导】：
                 1. 开篇定调（1-2句）：用一个充满情绪感的画面描述或内心感受开场。
-                2. 核心拆解（2-3句）：结合照片特点，谈谈为什么这组${state.photoContext}特别？（可以提光线、质感、或者人物之间的互动有多松弛）。展现你作为专业摄影师但又很有温度的观察。
-                3. 情感共鸣（1-2句）：升华主题，连接到相应的情感内核（如爱情、亲情、成长的喜悦等）。
+                2. 核心拆解（2-3句）：结合照片特点，谈谈为什么这组${state.photoContext}特别？展现你作为专业摄影师但又很有温度的观察。
+                3. 情感共鸣（1-2句）：升华主题，连接到相应的情感内核。
                 
                 【排版与红线规则】：
                 1. 极度精简有呼吸感：全篇文案不要超过150字！拒绝长篇大论，每句话独立成行，多换行留白。
                 2. 像真人随笔：不要用复杂的修辞堆砌，像对朋友说话一样自然。少量点缀符合氛围的emoji（2-3个即可）。
-                3. 互动转化：在正文结束后，空一行，加一句温暖的简短互动（如期待大家的故事，或询问喜欢这种质感吗等）。
+                3. 互动转化：在正文结束后，空一行，加一句温暖的简短互动。
                 4. 严格合规：严禁极限广告词和违规导流词。文末加5-8个精准Hashtag，必须包含 #AceLab定制 和 #AceLab摄影。
                 
                 请直接输出文案内容即可，不需要解释。`;
@@ -611,13 +601,12 @@
                 state.finalCopy = copyText;
                 state.detectedWords = scanForSensitiveWords(copyText);
             } catch (error) {
-                state.currentStep = 2; // 回退
+                state.currentStep = 2; 
             } finally {
                 state.isLoading = false; renderStepIndicator(); renderWorkflow();
             }
         };
 
-        // 5. 优化文案
         window.handleRefineCopy = async (overrideFeedback = null) => {
             const feedbackInput = document.getElementById('feedback-input');
             const feedbackText = overrideFeedback || (feedbackInput ? feedbackInput.value : '');
@@ -634,13 +623,12 @@
                 state.finalCopy = newCopyText;
                 state.detectedWords = scanForSensitiveWords(newCopyText);
             } catch (error) {
-                // 报错已拦截
+                // Error handled
             } finally {
                 state.isLoading = false; renderWorkflow();
             }
         };
 
-        // 辅助功能
         window.copyTextToClipboard = () => {
             const el = document.createElement('textarea');
             el.value = state.finalCopy;
@@ -656,7 +644,6 @@
             setTimeout(() => { btn.innerHTML = originalHtml; lucide.createIcons(); }, 2000);
         };
 
-        // --- 主渲染逻辑 ---
         const renderWorkflow = () => {
             let html = '';
             
@@ -671,11 +658,10 @@
                  html = `
                     <div class="h-[300px] flex flex-col items-center justify-center text-slate-500 bg-white rounded-2xl border border-slate-200 shadow-sm animate-fade-in">
                         <div class="loader mb-4 border-slate-900"></div>
-                        <p class="font-medium text-slate-700 text-sm sm:text-base">正在深度解析【${state.photoContext}】...</p>
-                        <p class="text-xs sm:text-sm mt-1">发散创意思维中</p>
+                        <p class="font-medium text-slate-700 text-sm sm:text-base">正在极速发散灵感...</p>
+                        <p class="text-xs sm:text-sm mt-1">深挖细节中</p>
                     </div>`;
             } else if (state.currentStep === 1 && state.currentIdeas.length > 0) {
-                // 渲染步骤 1 (脑暴结果)
                 let breadcrumbsHtml = '';
                 if(state.brainstormHistory.length > 0) {
                     breadcrumbsHtml = `<div class="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-sm text-slate-600 mb-4 sm:mb-6 bg-white px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 shadow-sm">
@@ -715,7 +701,6 @@
                     </div>
                 </div>`;
             } else if (state.currentStep === 2) {
-                // 渲染步骤 2 (标题选择)
                 const coreIdeaStr = state.brainstormHistory.map(h => h.title).concat(state.activeIdeaObj?.title).join(" -> ");
                 
                 html = `<div class="animate-fade-in">
@@ -768,7 +753,6 @@
                     </div></div>`;
                 }
             } else if (state.currentStep === 3) {
-                 // 渲染步骤 3 (生成文案)
                  html = `<div class="animate-fade-in h-full flex flex-col">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
                         <div class="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm relative overflow-hidden">
@@ -803,7 +787,7 @@
                 if (state.isLoading) {
                     html += `<div class="flex-1 min-h-[300px] flex flex-col items-center justify-center text-slate-500 bg-white rounded-2xl border border-slate-200 shadow-sm">
                         <div class="loader mb-4 border-slate-900"></div>
-                        <p class="font-medium text-slate-700 text-sm mt-4">正在撰写高级感文案...</p>
+                        <p class="font-medium text-slate-700 text-sm mt-4">正在撰写极简高级文案...</p>
                     </div></div>`;
                 } else {
                     const hasRisk = state.detectedWords.length > 0;
@@ -842,7 +826,6 @@
             
             els.workflowContainer.innerHTML = html;
             
-            // 绑定回车事件
             const feedbackInput = document.getElementById('feedback-input');
             if (feedbackInput) {
                 feedbackInput.addEventListener('keydown', (e) => {
@@ -853,16 +836,15 @@
             lucide.createIcons();
         };
 
-        // 事件监听
         els.fileInput.addEventListener('change', handleImageUpload);
 
-        // 初始渲染
         renderStepIndicator();
         updateLeftPanel();
 
     </script>
 </body>
 </html>
+
 
 
 ```
