@@ -19,7 +19,8 @@ The upgrade will focus on three outcomes:
 - Keep the app deployable as static files on GitHub Pages.
 - Do not introduce a build system unless the implementation becomes too hard to maintain without one.
 - Preserve the current 1-6 image upload flow and browser-side image compression.
-- Preserve personal-only API key behavior. This version may store Gemini and OpenAI API keys in the browser because the user confirmed the tool is for Laura's own use only.
+- Preserve personal-only API key behavior. This version stores provider API keys in Laura's browser because the user confirmed the tool is for Laura's own use only.
+- Store OpenAI API key in a browser cookie through an API key input popup.
 - Show a clear personal-device warning near key inputs: keys stay in this browser and should not be used on shared devices.
 - Do not route OpenAI through a backend proxy in v2 unless the user later asks for team/shared deployment.
 
@@ -81,13 +82,18 @@ Settings modal becomes an Engine Center with:
 ### OpenAI Defaults
 
 - Use the OpenAI Responses API directly from the browser with Authorization Bearer key, per user's personal-use decision.
-- Recommended options should include one lower-cost model and one higher-quality model.
+- Initial lower-cost option: `gpt-5.4-mini`.
+- Initial higher-quality option: `gpt-5.5`.
 - OpenAI model calls must support text + image input and text or JSON output.
 - Store OpenAI key separately from Gemini key.
 
 ### Storage
 
-Use local browser storage for provider settings. Cookie storage is acceptable if specifically preferred, but localStorage is simpler for a static single-page app. The implementation should hide keys after saving and provide clear delete/reset controls.
+- Store the OpenAI API key in a browser cookie named `acelab_openai_api_key`.
+- Store Gemini API key in the existing browser storage pattern, or migrate it to a provider cookie named `acelab_gemini_api_key` if that keeps the Engine Center simpler.
+- Store non-secret preferences such as selected provider, selected model, and UI preferences in localStorage.
+- Hide saved keys after saving and provide clear delete/reset controls.
+- Cookie values should be scoped to the current site path and use a long but explicit expiration suitable for a personal tool.
 
 ## 6. Unified AI Interface
 
@@ -206,17 +212,11 @@ Manual verification should cover:
 - Draft save/restore.
 - Copy button disabled for blocked copy and enabled for safe copy.
 
-## 14. Open Questions
-
-- Exact OpenAI model list can be tuned during implementation based on current official model availability.
-- Whether to use cookie or localStorage for keys will be finalized in implementation. Current recommendation is localStorage because it matches the existing Gemini key pattern and is simpler for a static app.
-- Whether to add an explicit "danger zone" reset all settings button depends on space in the settings modal.
-
-## 15. Approval Status
+## 14. Approval Status
 
 Approved direction from user:
 
 - Use B plan: static v2 productized workbench.
 - Manage work on GitHub and merge to main after upgrade.
 - Add OpenAI / ChatGPT model selection.
-- Store OpenAI key in the front-end browser for Laura's personal-use workflow, with a key input modal.
+- Store OpenAI key in the front-end browser cookie for Laura's personal-use workflow, with a key input modal.
