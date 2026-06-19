@@ -32,6 +32,22 @@ export function extractOpenAIText(result) {
   return textPart?.text ?? '';
 }
 
+async function readOpenAIError(response) {
+  const fallback = `OPENAI_HTTP_${response.status}`;
+  try {
+    const payload = await response.json();
+    const error = payload?.error || {};
+    const code = error.code || error.type || 'unknown';
+    const message = error.message || response.statusText || 'OpenAI request failed';
+    if (code === 'insufficient_quota') {
+      return `OPENAI_QUOTA:${code}:${message}`;
+    }
+    return `${fallback}:${code}:${message}`;
+  } catch {
+    return `${fallback}:unknown:${response.statusText || 'OpenAI request failed'}`;
+  }
+}
+
 export async function callOpenAI({ apiKey, model = DEFAULT_OPENAI_MODEL, prompt, systemInstruction, images, expectJson, fetchImpl = fetch }) {
   if (!apiKey) throw new Error('MISSING_OPENAI_KEY');
   const response = await fetchImpl('https://api.openai.com/v1/responses', {
@@ -44,7 +60,7 @@ export async function callOpenAI({ apiKey, model = DEFAULT_OPENAI_MODEL, prompt,
   });
 
   if (!response.ok) {
-    throw new Error(`OPENAI_HTTP_${response.status}`);
+    throw new Error(await readOpenAIError(response));
   }
 
   const result = await response.json();
