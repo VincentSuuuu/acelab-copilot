@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { buildGeminiPayload, extractGeminiText } from '../src/providers/gemini.js';
-import { buildOpenAIResponsePayload, extractOpenAIText } from '../src/providers/openai.js';
+import { buildOpenAIResponsePayload, callOpenAI, extractOpenAIText } from '../src/providers/openai.js';
 
 const images = [
   { mimeType: 'image/jpeg', data: 'abc123' }
@@ -62,4 +62,30 @@ test('extractOpenAIText reads output_text from response output', () => {
   });
 
   assert.equal(text, '文案内容');
+});
+
+test('callOpenAI preserves quota error details without labeling it as rate limit', async () => {
+  const fetchImpl = async () => ({
+    ok: false,
+    status: 429,
+    statusText: 'Too Many Requests',
+    async json() {
+      return {
+        error: {
+          code: 'insufficient_quota',
+          message: 'You exceeded your current quota.'
+        }
+      };
+    }
+  });
+
+  await assert.rejects(
+    callOpenAI({
+      apiKey: 'sk-test',
+      prompt: 'hello',
+      images: [],
+      fetchImpl
+    }),
+    /OPENAI_QUOTA:insufficient_quota:You exceeded your current quota/
+  );
 });
