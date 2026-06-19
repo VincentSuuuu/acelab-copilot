@@ -82,8 +82,9 @@ Settings modal becomes an Engine Center with:
 ### OpenAI Defaults
 
 - Use the OpenAI Responses API directly from the browser with Authorization Bearer key, per user's personal-use decision.
-- Initial lower-cost option: `gpt-5.4-mini`.
-- Initial higher-quality option: `gpt-5.5`.
+- Default OpenAI model: `gpt-5.5`.
+- The UI should present `gpt-5.5` as Laura's primary ChatGPT/OpenAI engine.
+- Lower-cost OpenAI variants can remain implementation-ready as hidden fallback options, but should not be the default or main recommendation.
 - OpenAI model calls must support text + image input and text or JSON output.
 - Store OpenAI key separately from Gemini key.
 
@@ -206,7 +207,7 @@ Manual verification should cover:
 - Mobile and desktop layout.
 - Upload 1 image and 6 images.
 - Gemini idea/title/copy path.
-- OpenAI idea/title/copy path.
+- OpenAI idea/title/copy path using `gpt-5.5`.
 - Missing-key and invalid-key errors.
 - Compliance block and auto-clean.
 - Draft save/restore.
@@ -219,4 +220,5 @@ Approved direction from user:
 - Use B plan: static v2 productized workbench.
 - Manage work on GitHub and merge to main after upgrade.
 - Add OpenAI / ChatGPT model selection.
+- Use `gpt-5.5` as the OpenAI model.
 - Store OpenAI key in the front-end browser cookie for Laura's personal-use workflow, with a key input modal.
